@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	// Envoie de la chaine de caractères
 	union sigval value;
     value.sival_ptr = argv[2]; //stock la variable dans un adresse mémoire
-    sigqueue(server_pid, SIGUSR1, value);
+    sigqueue(server_pid, SIGUSR1, value); // Il ne semble pas etre cable d'envoyer une chaine de caractère directement. Je dois convertir en binaire ?
     printf("Message envoyé au serveur : %s\n", argv[2]);
 	printf("Done.\n");
 
