@@ -6,38 +6,80 @@
 
 /* Compilation avec gcc server.c -o server */
 
+// Fonction pour convertir une chaîne binaire en texte
+char* BinaryToString(const char* binaire) {
 
-/*void sigUSR1_handler(int sig)
-{
-    printf("Signal reçu %d\n",sig );
-}*/
+    // Allouer de la mémoire pour la chaîne texte (plus un caractère nul '\0')
+    char* texte = (char*)malloc((8 + 1) * sizeof(char));
 
-void sigusr1_handler(int signo, siginfo_t *info, void *context)
+    // Convertir la chaîne binaire en texte
+    for (int i = 0; i < 8; i++) {
+        char octet[9];  // Stocker un octet (8 bits) + le caractère nul
+        strncpy(octet, binaire + i * 8, 8);
+        octet[8] = '\0';
+
+        // Convertir l'octet en décimal et puis en caractère ASCII
+        texte[i] = (char)strtol(octet, NULL, 2);
+    }
+
+    // Ajouter le caractère nul à la fin de la chaîne texte
+    texte[8] = '\0';
+
+    return texte;
+}
+
+void signal_handler_o(int signo) 
 {
-    printf("USR2\n");
-    //printf("Signal reçu de %d : %s\n",info->si_pid,(char *)info->si_value.sival_ptr ); // write better ?
-    char * c;
-    c = (char *)info->si_value.sival_ptr;
-    write(1,c,1);
+	static int i = 0;
+	static char letter[9] = ""; // 8bits + \0
+	if (signo == 10) // signal 10 = USR1 x86/ARM - man 7 signal
+	{
+		char bit[] = "1";
+		strcat(letter,bit);
+	}
+	else if (signo == 12) // signal 12 = USR2 x86/ARM - man 7 signal
+	{
+		char bit[] = "0";
+		strcat(letter,bit);
+	}
+	i++;
+	if (i >= 8)
+	{
+		char* letter_inv = BinaryToString(letter);
+		i = 0;
+        printf("%s\n",letter_inv );
+        // Reset la lettre
+		for (int j = 0; j < 9; j++) {
+            letter[j] = '\0';
+        }
+	}
 }
 
 
 
 int main(int argc, char const *argv[])
 {
-    pid_t pid = getpid();
+	// Récupération PID
+	pid_t pid = getpid();
     printf("Miniteams starting...\n");
     printf("My PID is %d\n", pid );
     printf("Waiting for new messages\n");
-    struct sigaction sa_usr1;
-    sa_usr1.sa_flags = SA_SIGINFO; // permets d'utiliser signo,info,context
-    sa_usr1.sa_sigaction = sigusr1_handler; // pointe vers une fonction à trois arguments
-    //sa_usr1.sa_handler = sigusr1_handler; pour une fonction a un argument
-    sigaction(SIGUSR1, &sa_usr1, NULL);
+    printf("========================\n");
 
+    // Création fonction handler
+    struct sigaction sa;
+    sa.sa_handler = signal_handler_o; // fonction à 1 arg =/= sa_sigaction à 3 arg
+    sa.sa_flags = 0; // pas besoin de fonction à 3 arguments !! En binaire 0 = USR1 et 1=USR2 !!
+    
+
+    // Écoute les signaux USR1 et USR2
+    signal(SIGUSR1, signal_handler_o);
+    signal(SIGUSR2, signal_handler_o);
+
+    // Boucle
     while (1)
     {
         pause();
     }
-    return 0;
+	return 0;
 }
