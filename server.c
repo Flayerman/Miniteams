@@ -1,19 +1,30 @@
-#include <stdio.h> /* librairie de base*/
-#include <stdlib.h> /* fonction exit*/
-#include <unistd.h> /*fonction pause / exit*/
-#include <signal.h> /* fonction signal */
-#include <string.h> /* autorisé*/
-
-/* Compilation avec gcc server.c -o server */
+#include <stdio.h> // librairie de base
+#include <stdlib.h> // fonction exit
+#include <unistd.h> // fonction pause / exit
+#include <signal.h> // fonction signal 
+#include <string.h> // autorisé
 
 // Fonction pour convertir une chaîne binaire en texte
 char* BinaryToString(const char* binaire) {
+    int longueur = strlen(binaire);
 
+    // Vérifie si la longueur de la chaîne binaire est un multiple de 8
+    if (longueur % 8 != 0) {
+        printf("Erreur : La longueur de la chaîne binaire doit être un multiple de 8.\n");
+        return NULL;
+    }
     // Allouer de la mémoire pour la chaîne texte (plus un caractère nul '\0')
-    char* texte = (char*)malloc((8 + 1) * sizeof(char));
+    int tailleTexte = longueur / 8;
+    char* texte = (char*)malloc((tailleTexte + 1) * sizeof(char));
 
-    // Convertir la chaîne binaire en texte
-    for (int i = 0; i < 8; i++) {
+    // Vérifier l'allocation de mémoire
+    if (texte == NULL) {
+        printf("Erreur : Échec de l'allocation de mémoire.\n");
+        return NULL;
+    }
+
+    // Convertie la chaîne binaire en texte
+    for (int i = 0; i < tailleTexte; i++) {
         char octet[9];  // Stocker un octet (8 bits) + le caractère nul
         strncpy(octet, binaire + i * 8, 8);
         octet[8] = '\0';
@@ -21,9 +32,7 @@ char* BinaryToString(const char* binaire) {
         // Convertir l'octet en décimal et puis en caractère ASCII
         texte[i] = (char)strtol(octet, NULL, 2);
     }
-
-    // Ajouter le caractère nul à la fin de la chaîne texte
-    texte[8] = '\0';
+    texte[tailleTexte] = '\0';
 
     return texte;
 }
@@ -42,14 +51,23 @@ void signal_handler_o(int signo)
 		char bit[] = "0";
 		strcat(letter,bit);
 	}
-	i++;
-	if (i >= 8)
-	{
-		char* letter_inv = BinaryToString(letter);
-		i = 0;
-        printf("%s\n",letter_inv );
+    else if (signo == 5) // signal 5 = SIGTRAP - renvoie la liste texte/letter_word avec l'appel en une fois de BinaryToString
+    {
+        char* letter_word = BinaryToString(letter);
+        printf("%s\n",letter_word);
+        FILE* fichier = NULL;
+        fichier = fopen("conversation.log","a");
+        if (fichier != NULL)
+        {
+            // On l'écrit dans le fichier
+            fprintf(fichier, letter_word,"\n");
+            fclose(fichier);
+        }
+
+
+
         // Reset la lettre
-		for (int j = 0; j < 9; j++) {
+        for (int j = 0; j < 256; j++) {
             letter[j] = '\0';
         }
 	}
@@ -75,6 +93,7 @@ int main(int argc, char const *argv[])
     // Écoute les signaux USR1 et USR2
     signal(SIGUSR1, signal_handler_o);
     signal(SIGUSR2, signal_handler_o);
+    signal(SIGTRAP, signal_handler_o);
 
     // Boucle
     while (1)
