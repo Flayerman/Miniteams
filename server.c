@@ -40,7 +40,7 @@ char* BinaryToString(const char* binaire) {
 void signal_handler_o(int signo) 
 {
 	static int i = 0;
-	static char letter[9] = ""; // 8bits + \0
+	static char letter[1025] = ""; // 128*8bits + \0
 	if (signo == 10) // signal 10 = USR1 x86/ARM - man 7 signal
 	{
 		char bit[] = "1";
@@ -55,19 +55,19 @@ void signal_handler_o(int signo)
     {
         char* letter_word = BinaryToString(letter);
         printf("%s\n",letter_word);
+
+        // Création + écriture fichier
         FILE* fichier = NULL;
         fichier = fopen("conversation.log","a");
         if (fichier != NULL)
         {
             // On l'écrit dans le fichier
-            fprintf(fichier, letter_word,"\n");
+            fprintf(fichier, "%s\n", letter_word);
+
             fclose(fichier);
         }
-
-
-
         // Reset la lettre
-        for (int j = 0; j < 256; j++) {
+        for (int j = 0; j < 1024; j++) {
             letter[j] = '\0';
         }
 	}
