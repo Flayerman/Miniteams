@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 
 void sendSignal(int bit, char* targetPID)
@@ -23,6 +24,20 @@ void sendSignal(int bit, char* targetPID)
     }
 }
 
+char* timeNow(void)
+{
+    static char s_now[sizeof "HH:MM:SS"];
+
+    /* lire l'heure courante */
+   time_t now = time (NULL);
+
+   /* la convertir en heure locale */
+   struct tm *tm_now = localtime (&now);
+
+   strftime (s_now, sizeof s_now, "%H:%M:%S", tm_now);
+   return s_now;
+}
+
 int main(int argc, char* argv[])
 {
     // Erreur 1
@@ -35,11 +50,16 @@ int main(int argc, char* argv[])
     char *targetPID = argv[1];
     char *message = argv[2];
     pid_t pid = getpid();
-    char user[128];
+    char user[128]; // 128 caractères
 
-    // Utilisation de sprintf pour formater la chaîne
-    sprintf(user, "[From client %d] ", pid); 
+    sprintf(user, "[From client %d] [%s] ", pid, timeNow()); // Utilisation de sprintf pour formater la chaîne 29caractères
     strcat(user,message);
+    // Erreur 2
+    if (strlen(user) > 128)
+    {
+        printf("WARNING, Please write a sentence of less than 100 characters!\n");
+        return 1;
+    }
 
     printf("Sending to : %s\n", targetPID);
 
@@ -47,7 +67,7 @@ int main(int argc, char* argv[])
     for (int i = 0; user[i] != '\0'; ++i) {
         for (int j = 7; j >= 0; --j) {
             sendSignal((user[i] >> j) & 1, targetPID);;
-            usleep(500); // pause 10ms
+            usleep(100); // pause 10ms
         }
     }
     // Fin de séquence
